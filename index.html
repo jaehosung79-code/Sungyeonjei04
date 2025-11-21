@@ -14,188 +14,253 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="apple-touch-icon" href="icon-192.png">
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body { font-family:sans-serif; padding:15px; background:#f2f2f2; }
 h2 { text-align:center; }
 
-.container { background:white; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.15); margin-bottom:15px; }
+.container {
+    background:white; padding:15px; border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15); margin-bottom:15px;
+}
 
-.save-btn, .chart-btn { width:100%; margin-top:15px; padding:12px; font-size:16px; border:none; border-radius:8px; cursor:pointer; }
-.save-btn { background:#2a7bff; color:white; }
-.chart-btn { background:#28a745; color:white; }
+.save-btn, .delete-btn, .add-btn {
+    padding:10px 15px; font-size:14px;
+    border:none; border-radius:8px; cursor:pointer;
+}
+.save-btn { background:#2a7bff; color:white; width:100%; margin-top:15px; }
+.delete-btn { background:#d9534f; color:white; margin-left:10px; }
+.add-btn { background:#ff9800; color:white; width:100%; margin-top:10px; }
+
+.date-row { display:flex; align-items:center; }
+.date-row input[type="date"] { flex:1; padding:8px; font-size:16px; }
 
 table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 10px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    overflow: hidden;
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    margin-top: 10px; border: 1px solid #ccc; border-radius: 10px; overflow: hidden;
 }
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-
+th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
 th { background:#444; color:white; }
 
-.saved-item { padding:10px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center; }
-.saved-item span { cursor:pointer; }
-.saved-item button { cursor:pointer; background:none; border:none; color:red; }
+/* 드래그 */
+tr.draggable-row { cursor:move; }
+tr.dragging { opacity:0.3; }
 
-#chartContainer { display:none; padding:15px; background:white; margin-top:15px; border-radius:10px; }
+footer {
+    text-align:center;
+    margin-top:20px;
+    padding:10px;
+    color:#666;
+}
+
+#progressContainer {
+    background:white; padding:15px; border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15); margin-bottom:15px;
+}
+
+/* 진도율 강조 */
+#progressPercent {
+    color: red;
+    font-size: 2em; /* 2배 크기 */
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
 
 <h2>연제 운동 체크 앱</h2>
 
-<div class="container">
-    <input type="date" id="dateInput" />
+<div id="progressContainer">
+    <h3>이번 달 진도율</h3>
+    <p id="progressText">
+        이번 달 운동한 날: <span id="completedDays"></span> / <span id="totalDays"></span>일<br>
+        진도율: <span id="progressPercent"></span>%
+    </p>
+</div>
 
-    <table>
+<div class="container">
+    <!-- 날짜 + 삭제 버튼 -->
+    <div class="date-row">
+        <input type="date" id="dateInput" />
+        <button class="delete-btn" id="deleteBtn">🗑 삭제</button>
+    </div>
+
+    <!-- 운동 목록 -->
+    <table id="exerciseTable">
         <thead>
-            <tr><th>운동</th><th>1set</th><th>2set</th><th>3set</th></tr>
+            <tr><th>운동</th><th>1set</th><th>2set</th><th>3set</th><th>삭제</th></tr>
         </thead>
-        <tbody>
-            <tr><td>보강</td><td><input type="checkbox" data-name="bo1"></td><td><input type="checkbox" data-name="bo2"></td><td><input type="checkbox" data-name="bo3"></td></tr>
-            <tr><td>코어</td><td><input type="checkbox" data-name="core1"></td><td><input type="checkbox" data-name="core2"></td><td><input type="checkbox" data-name="core3"></td></tr>
-            <tr><td>푸쉬업</td><td><input type="checkbox" data-name="push1"></td><td><input type="checkbox" data-name="push2"></td><td><input type="checkbox" data-name="push3"></td></tr>
-            <tr><td>몸통 돌리기</td><td><input type="checkbox" data-name="bat1"></td><td><input type="checkbox" data-name="bat2"></td><td><input type="checkbox" data-name="bat3"></td></tr>
-            <tr><td>악력기</td><td><input type="checkbox" data-name="gripL"></td><td><input type="checkbox" data-name="gripR"></td><td></td></tr>
-            <tr><td>고무줄 튜빙</td><td><input type="checkbox" data-name="tubing1"></td><td><input type="checkbox" data-name="tubing2"></td><td><input type="checkbox" data-name="tubing3"></td></tr>
+        <tbody id="exerciseBody">
+            <tr draggable="true" class="draggable-row">
+                <td>보강</td>
+                <td><input type="checkbox" data-name="bo1"></td>
+                <td><input type="checkbox" data-name="bo2"></td>
+                <td><input type="checkbox" data-name="bo3"></td>
+                <td></td>
+            </tr>
+            <tr draggable="true" class="draggable-row">
+                <td>코어</td>
+                <td><input type="checkbox" data-name="core1"></td>
+                <td><input type="checkbox" data-name="core2"></td>
+                <td><input type="checkbox" data-name="core3"></td>
+                <td></td>
+            </tr>
+            <tr draggable="true" class="draggable-row">
+                <td>푸쉬업</td>
+                <td><input type="checkbox" data-name="push1"></td>
+                <td><input type="checkbox" data-name="push2"></td>
+                <td><input type="checkbox" data-name="push3"></td>
+                <td></td>
+            </tr>
+            <tr draggable="true" class="draggable-row">
+                <td>몸통 돌리기</td>
+                <td><input type="checkbox" data-name="bat1"></td>
+                <td><input type="checkbox" data-name="bat2"></td>
+                <td><input type="checkbox" data-name="bat3"></td>
+                <td></td>
+            </tr>
+            <tr draggable="true" class="draggable-row">
+                <td>악력기</td>
+                <td><input type="checkbox" data-name="gripL"></td>
+                <td><input type="checkbox" data-name="gripR"></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr draggable="true" class="draggable-row">
+                <td>고무줄 튜빙</td>
+                <td><input type="checkbox" data-name="tubing1"></td>
+                <td><input type="checkbox" data-name="tubing2"></td>
+                <td><input type="checkbox" data-name="tubing3"></td>
+                <td></td>
+            </tr>
         </tbody>
     </table>
 
+    <button class="add-btn" id="addExerciseBtn">+ 운동 추가</button>
     <button id="saveBtn" class="save-btn">💾 저장하기</button>
 </div>
 
-<div class="container">
-    <h3>저장된 날짜</h3>
-    <div id="savedList"></div>
-</div>
-
-<button class="chart-btn" id="chartBtn">📊 그래프 보기</button>
-
-<div id="chartContainer">
-    <h3 id="chartTitle"></h3>
-    <canvas id="myChart"></canvas>
-</div>
+<footer>
+    만든 사람 : <strong>Jaeho</strong>
+</footer>
 
 <script>
+// -------------------- 변수 --------------------
 const dateInput = document.getElementById("dateInput");
-const checkboxes = document.querySelectorAll("input[type=checkbox]");
-const savedList = document.getElementById("savedList");
-let chart = null;
+const exerciseBody = document.getElementById("exerciseBody");
+const progressText = document.getElementById("progressText");
 
 // 오늘 날짜 기본값
 const now = new Date();
 const offset = now.getTimezoneOffset() * 60000;
 dateInput.value = new Date(Date.now() - offset).toISOString().split("T")[0];
 
-loadData(dateInput.value);
-refreshSavedList();
+// -------------------- 운동 추가 --------------------
+document.getElementById("addExerciseBtn").onclick = () => {
+    const name = prompt("추가할 운동 이름을 입력하세요:");
+    if (!name) return;
+    const idBase = name.replace(/\s/g, "");
 
-document.getElementById("saveBtn").addEventListener("click", () => {
-    saveData();
-    refreshSavedList();
-    alert("저장되었습니다!");
-});
+    const row = document.createElement("tr");
+    row.draggable = true;
+    row.className = "draggable-row";
+    row.innerHTML = `
+        <td>${name}</td>
+        <td><input type="checkbox" data-name="${idBase}_1"></td>
+        <td><input type="checkbox" data-name="${idBase}_2"></td>
+        <td><input type="checkbox" data-name="${idBase}_3"></td>
+        <td><button onclick="deleteRow(this)">X</button></td>
+    `;
+    exerciseBody.appendChild(row);
+    initDragEvents();
+};
 
-dateInput.addEventListener("change", () => loadData(dateInput.value));
+// -------------------- 행 삭제 --------------------
+function deleteRow(btn) { btn.closest("tr").remove(); }
 
-function saveData() {
+// -------------------- 저장 --------------------
+document.getElementById("saveBtn").onclick = () => {
     const key = "exercise_" + dateInput.value;
     let data = {};
-    checkboxes.forEach(c => data[c.dataset.name] = c.checked);
+    document.querySelectorAll("input[type=checkbox]").forEach(cb => data[cb.dataset.name] = cb.checked);
     localStorage.setItem(key, JSON.stringify(data));
-}
+    alert("저장되었습니다!");
+    updateMonthlyProgress();
+};
 
+// -------------------- 불러오기 --------------------
 function loadData(date) {
-    checkboxes.forEach(c => c.checked = false);
+    document.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
     const data = JSON.parse(localStorage.getItem("exercise_" + date) || "{}");
     for (let key in data) {
         const cb = document.querySelector(`[data-name="${key}"]`);
         if (cb) cb.checked = data[key];
     }
 }
+loadData(dateInput.value);
+dateInput.onchange = () => loadData(dateInput.value);
 
-function refreshSavedList() {
-    savedList.innerHTML = "";
-    const keys = Object.keys(localStorage).filter(k => k.startsWith("exercise_")).sort();
-    keys.forEach(k => {
-        const date = k.replace("exercise_", "");
-        const div = document.createElement("div");
-        div.className = "saved-item";
+// -------------------- 날짜 삭제 --------------------
+document.getElementById("deleteBtn").onclick = () => {
+    const date = dateInput.value;
+    if (confirm(date + " 데이터를 삭제할까요?")) {
+        localStorage.removeItem("exercise_" + date);
+        document.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+        alert("삭제되었습니다!");
+        updateMonthlyProgress();
+    }
+};
 
-        // 날짜 클릭
-        const span = document.createElement("span");
-        span.textContent = date;
-        span.onclick = () => {
-            dateInput.value = date;
-            loadData(date);
-        };
-
-        // 삭제 버튼
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑 삭제";
-        delBtn.onclick = (e) => {
-            e.stopPropagation(); // 부모 클릭 이벤트 방지
-            if (confirm(date + " 데이터를 삭제하시겠습니까?")) {
-                localStorage.removeItem("exercise_" + date);
-                refreshSavedList();
-                if (dateInput.value === date) {
-                    checkboxes.forEach(c => c.checked = false);
-                }
-            }
-        };
-
-        div.appendChild(span);
-        div.appendChild(delBtn);
-        savedList.appendChild(div);
+// -------------------- 드래그 정렬 --------------------
+function initDragEvents() {
+    const rows = document.querySelectorAll(".draggable-row");
+    rows.forEach(row => {
+        row.addEventListener("dragstart", () => row.classList.add("dragging"));
+        row.addEventListener("dragend", () => row.classList.remove("dragging"));
+    });
+    exerciseBody.addEventListener("dragover", e => {
+        e.preventDefault();
+        const dragging = document.querySelector(".dragging");
+        const after = getDragAfterElement(exerciseBody, e.clientY);
+        if (after == null) exerciseBody.appendChild(dragging);
+        else exerciseBody.insertBefore(dragging, after);
     });
 }
-
-document.getElementById("chartBtn").onclick = () => drawGraph(dateInput.value);
-
-function drawGraph(date) {
-    const raw = localStorage.getItem("exercise_" + date);
-    if (!raw) return alert("저장된 데이터 없음");
-
-    const d = JSON.parse(raw);
-    const labels = ["보강","코어","푸쉬업","몸통1","악력L","악력R","고무줄 튜빙"];
-    const values = [
-        (d.bo1?1:0)+(d.bo2?1:0)+(d.bo3?1:0),
-        (d.core1?1:0)+(d.core2?1:0)+(d.core3?1:0),
-        (d.push1?1:0)+(d.push2?1:0)+(d.push3?1:0),
-        (d.bat1?1:0)+(d.bat2?1:0)+(d.bat3?1:0),
-        (d.gripL?1:0),
-        (d.gripR?1:0),
-        (d.tubing1?1:0)+(d.tubing2?1:0)+(d.tubing3?1:0)
-    ];
-
-    document.getElementById("chartContainer").style.display = "block";
-    document.getElementById("chartTitle").innerText = date + " 운동 그래프";
-
-    if (chart) chart.destroy();
-    chart = new Chart(document.getElementById("myChart"), {
-        type:"bar",
-        data:{ labels, datasets:[{ label:"세트 완료", data:values, backgroundColor:"#2A7BFF" }] },
-        options:{ scales:{ y:{beginAtZero:true, max:3} } }
-    });
+function getDragAfterElement(container, y) {
+    const elements = [...container.querySelectorAll(".draggable-row:not(.dragging)")];
+    return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height/2;
+        if (offset < 0 && offset > closest.offset) return {offset, element:child};
+        else return closest;
+    }, {offset: Number.NEGATIVE_INFINITY}).element;
 }
+initDragEvents();
 
-// ---- PWA Service Worker 등록 ----
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js")
-        .then(() => console.log("Service Worker 등록됨"))
-        .catch(err => console.error("Service Worker 등록 실패", err));
+// -------------------- 한 달 진도율 --------------------
+function updateMonthlyProgress() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth()+1;
+    const totalDays = new Date(year, month, 0).getDate();
+    let completedDays = 0;
+    for (let i=1; i<=totalDays; i++){
+        const day = i.toString().padStart(2,'0');
+        const monthStr = month.toString().padStart(2,'0');
+        const key = `exercise_${year}-${monthStr}-${day}`;
+        if(localStorage.getItem(key)) completedDays++;
+    }
+    const progress = ((completedDays/totalDays)*100).toFixed(1);
+    document.getElementById("completedDays").textContent = completedDays;
+    document.getElementById("totalDays").textContent = totalDays;
+    document.getElementById("progressPercent").textContent = progress;
+}
+updateMonthlyProgress();
+
+// -------------------- PWA 등록 --------------------
+if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('service-worker.js')
+    .then(()=>console.log('Service Worker 등록됨'))
+    .catch(err=>console.error('Service Worker 등록 실패',err));
 }
 </script>
 </body>
