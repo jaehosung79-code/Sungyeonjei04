@@ -17,7 +17,7 @@ html, body {
     padding: 0;
     background: #000;
     color: #e0e0e0;
-    font-size: 1.2em; /* 전체 글자 20% 증가 */
+    font-size: 1.1em; /* 전체 글자 20% 증가 */
 }
 
 /* 타이틀 30% 작게 */
@@ -28,13 +28,13 @@ h2 {
     font-size: 0.7em;
 }
 
-/* 공통 container */
+/* 컨테이너 */
 .container {
     background: #1e1e1e;
     padding: 6px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    margin: 6px;
+    margin: 6px 6px 4px 6px;
 }
 
 /* 달력 */
@@ -68,7 +68,7 @@ h2 {
     border-radius: 4px;
     cursor: pointer;
     border: 1px solid transparent;
-    height: 40px; /* 달력 높이 20% 축소 */
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -111,7 +111,7 @@ h2 {
 
 /* 운동 테이블 */
 #exerciseContainer {
-    max-height: none; /* 스크롤 제거 */
+    max-height: none;
     margin-top: 4px;
 }
 table {
@@ -129,7 +129,7 @@ th, td {
     text-align: center;
 }
 th { background: #333; color: white; }
-tr { height: 60px; } /* 테이블 높이 30% 증가 */
+tr { height: 60px; }
 
 /* 모달 */
 .modal-overlay {
@@ -212,7 +212,7 @@ footer {
     <button class="save-btn" id="saveBtn">💾 저장하기</button>
 </div>
 
-<footer>만든 사람 : <strong>연제빠</strong></footer>
+<footer>만든 사람 : <strong>Jaeho</strong></footer>
 
 <!-- 모달 -->
 <div id="modalOverlay" class="modal-overlay">
@@ -232,7 +232,6 @@ footer {
 </div>
 
 <script>
-// 기본 운동
 const defaultExercises = [
     {name:"보강", sets:3},
     {name:"코어", sets:3},
@@ -265,11 +264,9 @@ function createRow(ex){
 }
 function deleteExerciseRow(btn){ btn.closest("tr").remove(); }
 
-// +운동 추가 모달
 const addExerciseModal = document.getElementById("addExerciseModal");
 const addExerciseInput = document.getElementById("newExerciseInput");
 const addExerciseOkBtn = document.getElementById("addExerciseOkBtn");
-
 document.getElementById("addExerciseBtn").onclick = ()=>{
     addExerciseInput.value="";
     addExerciseModal.style.display="flex";
@@ -368,7 +365,6 @@ renderCalendar(today.getFullYear(), today.getMonth()+1);
 document.getElementById("saveBtn").onclick=saveDay;
 document.getElementById("deleteBtn").onclick=deleteDay;
 
-// 서비스워커
 if('serviceWorker' in navigator){
     navigator.serviceWorker.register('service-worker.js')
     .then(()=>console.log('Service Worker 등록됨'))
